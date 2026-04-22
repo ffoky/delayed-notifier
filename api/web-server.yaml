@@ -1,0 +1,304 @@
+openapi: 3.0.3
+info:
+  title: DelayedNotifier API
+  description: API для управления отложенными уведомлениями
+  version: 1.0.0
+
+paths:
+  /notify:
+    get:
+      operationId: listNotifications
+      summary: Список уведомлений
+      responses:
+        '200':
+          description: Список уведомлений
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: createNotification
+      summary: Создать отложенное уведомление
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationRequest'
+      responses:
+        '201':
+          description: Уведомление создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Некорректные параметры запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notify/{id}:
+    get:
+      operationId: getNotification
+      summary: Получить статус уведомления
+      parameters:
+        - $ref: '#/components/parameters/NotificationID'
+      responses:
+        '200':
+          description: Информация об уведомлении
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: Уведомление не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      operationId: cancelNotification
+      summary: Отменить запланированное уведомление
+      parameters:
+        - $ref: '#/components/parameters/NotificationID'
+      responses:
+        '200':
+          description: Уведомление отменено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: Уведомление не найдено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Уведомление уже отправлено или отменено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users:
+    post:
+      operationId: createUser
+      summary: Создать пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth:
+    post:
+      operationId: authUser
+      summary: Войти или создать пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          description: Пользователь найден или создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Некорректные параметры
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  parameters:
+    NotificationID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    Channel:
+      type: string
+      enum:
+        - telegram
+        - email
+
+    Status:
+      type: string
+      enum:
+        - planned
+        - sending
+        - sent
+        - failed
+        - cancelled
+
+    CreateNotificationRequest:
+      type: object
+      required:
+        - user_id
+        - channel
+        - text
+        - planned_at
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: ID пользователя-получателя
+        channel:
+          $ref: '#/components/schemas/Channel'
+        text:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          example: "Напоминание о встрече через 15 минут"
+        planned_at:
+          type: string
+          format: date-time
+          description: Время отправки уведомления
+          example: "2026-04-15T10:30:00Z"
+
+    NotificationResponse:
+      type: object
+      required:
+        - id
+        - user_id
+        - channel
+        - text
+        - status
+        - planned_at
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        channel:
+          $ref: '#/components/schemas/Channel'
+        text:
+          type: string
+        status:
+          $ref: '#/components/schemas/Status'
+        planned_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        retries:
+          type: integer
+          default: 0
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: "notification not found"
+
+    CreateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        telegram_id:
+          type: integer
+          format: int64
+      description: Хотя бы одно поле обязательно
+
+    UserResponse:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          nullable: true
+        telegram_id:
+          type: integer
+          format: int64
+          nullable: true
+
+    AuthRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        telegram_id:
+          type: integer
+          format: int64
+      description: Хотя бы одно поле обязательно

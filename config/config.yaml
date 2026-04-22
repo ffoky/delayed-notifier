@@ -1,0 +1,33 @@
+http:
+  addr: ":8080"
+
+database:
+  url: "postgres://postgres:postgres@localhost:5432/notifier?sslmode=disable"
+
+rabbitmq:
+  url: "amqp://guest:guest@localhost:5672/"
+  reconnect_attempts: 10
+  reconnect_delay: "500ms"
+  produce_attempts: 3
+  produce_delay: "100ms"
+  consume_attempts: 5
+  consume_delay: "1s"
+  backoff: 2
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+
+telegram:
+  bot_token: ""
+
+email:
+  smtp_host: ""
+  smtp_port: 587
+  from: ""
+  password: ""
+
+app:
+  max_retries: 5
+  scheduler_interval: "30s"
+  process_ready_timeout: "25s"
